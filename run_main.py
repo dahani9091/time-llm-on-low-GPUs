@@ -266,5 +266,5 @@ for ii in range(args.itr):
 accelerator.wait_for_everyone()
 if accelerator.is_local_main_process:
     path = './checkpoints'  # unique checkpoint saving path
-    del_files(path)  # delete checkpoint files
-    accelerator.print('success delete checkpoints')
+    # del_files(path)  # delete checkpoint files
+    # accelerator.print('success delete checkpoints')
