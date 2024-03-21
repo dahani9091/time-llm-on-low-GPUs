@@ -20,6 +20,7 @@ accelerate launch --multi_gpu --mixed_precision bf16 --num_processes $num_proces
   --model $model_name \
   --data ECL \
   --features M \
+  --freq w \
   --seq_len 512 \
   --label_len 48 \
   --pred_len 96 \

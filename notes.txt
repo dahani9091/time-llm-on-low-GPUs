@@ -1,0 +1,24 @@
+'--features', type=str, default='M',
+                    help='forecasting task, options:[M, S, MS]; '
+                         'M:multivariate predict multivariate,
+                         'S: univariate predict univariate, '
+                         'MS:multivariate predict univariate'
+
+
+'--target', type=str, default='OT', help='target feature in S or MS task'
+
+'--loader', type=str, default='modal', help='dataset type'
+
+'--freq', type=str, default='h',
+                    help='freq for time features encoding, '
+                         'options:[s:secondly, t:minutely, h:hourly, d:daily, b:business days, w:weekly, m:monthly], '
+                         'you can also use more detailed freq like 15min or 3h'
+
+df_raw.columns: ['date', ...(other features), target feature]
+
+'--seq_len', type=int, default=96, help='input sequence length'
+'--label_len', type=int, default=48, help='start token length'
+'--pred_len', type=int, default=96, help='prediction sequence length'
+'--seasonal_patterns', type=str, default='Monthly', help='subset for M4'
+
+--enc_in == --dec_in == --c_out == number of features
