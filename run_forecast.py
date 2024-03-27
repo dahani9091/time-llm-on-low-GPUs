@@ -154,7 +154,6 @@ saved_model_path = "/content/drive/MyDrive/checkpoint"
 
 # Load the saved model
 model = TimeLLM.Model(args).float()
-unwrapped_model = model.accelerator.unwrap_model(model)
 model.load_state_dict(torch.load(saved_model_path), map_location= lambda storage, loc: storage)
 
 # Set the model to evaluation mode
