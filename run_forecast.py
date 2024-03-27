@@ -265,7 +265,7 @@ with torch.no_grad():
     predictions = np.concatenate(predictions, axis=0)
 
     # Plot the predictions
-    plot_predictions(predictions, test_data)
+    plot_predictions(predictions, actuals)
 
     # save all the predictions to a file
     np.save('predictions.npy', predictions)
