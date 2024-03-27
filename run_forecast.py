@@ -103,6 +103,52 @@ ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
 deepspeed_plugin = DeepSpeedPlugin(hf_ds_config='./ds_config_zero2.json')
 accelerator = Accelerator(kwargs_handlers=[ddp_kwargs], deepspeed_plugin=deepspeed_plugin)
 
+# define a forecast function
+def forecast(args, accelerator, model, vali_data, vali_loader, criterion, mae_metric):
+    forecast_results = []
+    actual_predictions = []
+    model.eval()
+    with torch.no_grad():
+        for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(vali_loader)):
+            batch_x = batch_x.float().to(accelerator.device)
+            batch_y = batch_y.float()
+
+            batch_x_mark = batch_x_mark.float().to(accelerator.device)
+            batch_y_mark = batch_y_mark.float().to(accelerator.device)
+
+            # decoder input
+            dec_inp = torch.zeros_like(batch_y[:, -args.pred_len:, :]).float()
+            dec_inp = torch.cat([batch_y[:, :args.label_len, :], dec_inp], dim=1).float().to(
+                accelerator.device)
+            # encoder - decoder
+            if args.use_amp:
+                with torch.cuda.amp.autocast():
+                    if args.output_attention:
+                        outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
+                    else:
+                        outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+            else:
+                if args.output_attention:
+                    outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
+                else:
+                    outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+            # self.accelerator.wait_for_everyone()
+            f_dim = -1 if args.features == 'MS' else 0
+            outputs = outputs[:, -args.pred_len:, f_dim:]
+            batch_y = batch_y[:, -args.pred_len:, f_dim:].to(accelerator.device)
+
+            pred = outputs.detach()
+            true = batch_y.detach()
+
+            forecast_results.append(pred.cpu().numpy())
+            actual_predictions.append(true.cpu().numpy())
+
+    forecast_results = np.concatenate(forecast_results, axis=0)
+    actual_predictions = np.concatenate(actual_predictions, axis=0)
+
+    model.train()
+    return forecast_results, actual_predictions
+
 
 saved_model_path = "/content/drive/MyDrive/checkpoint"
 
@@ -113,23 +159,32 @@ model.load_state_dict(torch.load(saved_model_path), strict=False)
 # Set the model to evaluation mode
 model.eval()
 
-def plot_predictions(predictions, actuals, sample_index=0):
+# Define a function to plot the predictions
+def plot_predictions(predictions, real, sample_index=0):
     import matplotlib.pyplot as plt
 
-    # Extract the predictions and actuals for a single sample
+    # predictions is 3D, let's select one sample's predictions to plot
+    # This will take the predictions for the first feature (index 0) of the given sample
     sample_predictions = predictions[sample_index, :, 0]
-    sample_actuals = actuals[sample_index, :, 0]
+    sample_real = real[sample_index, :, 0]
     
-    # Create the plot
+    # Create a figure and axis
     fig, ax = plt.subplots()
+
+    # Plot the predictions
     ax.plot(sample_predictions, label='Predictions')
-    ax.plot(sample_actuals, label='Actual Values')
+    ax.plot(sample_real, label='Real Data')
+
+    # Add labels and title
     ax.set_xlabel('Time Steps')
     ax.set_ylabel('Value')
-    ax.set_title('Predicted vs Actual Values for Sample {}'.format(sample_index))
-    ax.legend()
-    plt.show()
+    ax.set_title('Predicted Values vs Real Data for Sample {}'.format(sample_index))
 
+    # Add legend
+    ax.legend()
+
+    # save the plot
+    plt.savefig('predictions.png')
 
 # Load the test data
 setting = '{}_{}_{}_{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_el{}_dl{}_df{}_fc{}_eb{}_{}_{}'.format(
@@ -187,8 +242,10 @@ with torch.no_grad():
         batch_x_mark = batch_x_mark.float().to(accelerator.device)
 
         # decoder input
-        dec_inp = torch.zeros_like(batch_y[:, -args.pred_len:, :]).float().to(accelerator.device)
-        dec_inp = torch.cat([batch_y[:, :args.label_len, :], dec_inp], dim=1).float().to(accelerator.device)
+        dec_inp = torch.zeros_like(batch_y[:, -args.pred_len:, :]).float().to(
+            accelerator.device)
+        dec_inp = torch.cat([batch_y[:, :args.label_len, :], dec_inp], dim=1).float().to(
+            accelerator.device)
 
         # Predict
         if args.output_attention:
@@ -200,20 +257,20 @@ with torch.no_grad():
         f_dim = -1 if args.features == 'MS' else 0
         outputs = outputs[:, -args.pred_len:, f_dim:]
         pred = outputs.detach().cpu().numpy()
-        actual = batch_y[:, -args.pred_len:, f_dim:].numpy()  # Get the actual values
+        actual = batch_y[:, -args.pred_len:, f_dim:].cpu().numpy()
         predictions.append(pred)
         actuals.append(actual)
 
-    # Concatenate the predictions and actuals
+    # Concatenate the predictions
     predictions = np.concatenate(predictions, axis=0)
-    actuals = np.concatenate(actuals, axis=0)
 
-    # Plot the predictions for a selected sample
-    plot_predictions(predictions, actuals, sample_index=0)
+    # Plot the predictions
+    plot_predictions(predictions, test_data)
+
     # save all the predictions to a file
     np.save('predictions.npy', predictions)
-    # save all the actuals to a file
-    np.save('actuals.npy', actuals)
+    # save the actual data to a file
+    np.save('actual.npy', test_data)
 
 accelerator.wait_for_everyone()
 if accelerator.is_local_main_process:
