@@ -150,7 +150,7 @@ def forecast(args, accelerator, model, vali_data, vali_loader, criterion, mae_me
     return forecast_results, actual_predictions
 
 
-saved_model_path = os.path.join(args.checkpoints, f'{args.model_id}.pth')
+saved_model_path = "/content/drive/MyDrive/checkpoint"
 
 # Load the saved model
 model = TimeLLM.Model(args).float()
