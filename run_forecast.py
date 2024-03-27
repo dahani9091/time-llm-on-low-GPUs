@@ -273,7 +273,7 @@ with torch.no_grad():
     # save all the predictions to a file
     np.save('predictions.npy', predictions)
     # save the actual data to a file
-    np.save('actual.npy', test_data)
+    np.save('actual.npy', actuals)
 
 accelerator.wait_for_everyone()
 if accelerator.is_local_main_process:
