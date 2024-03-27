@@ -160,23 +160,26 @@ model.load_state_dict(torch.load(saved_model_path), strict=False)
 model.eval()
 
 # Define a function to plot the predictions
-def plot_predictions(predictions):
+def plot_predictions(predictions, sample_index=0):
     import matplotlib.pyplot as plt
 
+    # predictions is 3D, let's select one sample's predictions to plot
+    # This will take the predictions for the first feature (index 0) of the given sample
+    sample_predictions = predictions[sample_index, :, 0]
+    
     # Create a figure and axis
     fig, ax = plt.subplots()
 
     # Plot the predictions
-    ax.plot(predictions)
+    ax.plot(sample_predictions)
 
     # Add labels and title
-    ax.set_xlabel('Time')
+    ax.set_xlabel('Time Steps')
     ax.set_ylabel('Prediction')
-    ax.set_title('Predicted Values')
+    ax.set_title('Predicted Values for Sample {}'.format(sample_index))
 
     # Show the plot
     plt.show()
-
 
 # Load the test data
 setting = '{}_{}_{}_{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_el{}_dl{}_df{}_fc{}_eb{}_{}_{}'.format(
