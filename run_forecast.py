@@ -154,7 +154,8 @@ saved_model_path = "/content/drive/MyDrive/checkpoint"
 
 # Load the saved model
 model = TimeLLM.Model(args).float()
-model.load_state_dict(torch.load(saved_model_path))
+unwrapped_model = model.accelerator.unwrap_model(model)
+model.load_state_dict(torch.load(saved_model_path), map_location= lambda storage, loc: storage)
 
 # Set the model to evaluation mode
 model.eval()
@@ -232,11 +233,17 @@ with torch.no_grad():
         batch_x = batch_x.float().to(accelerator.device)
         batch_x_mark = batch_x_mark.float().to(accelerator.device)
 
+        # decoder input
+        dec_inp = torch.zeros_like(batch_y[:, -args.pred_len:, :]).float().to(
+            accelerator.device)
+        dec_inp = torch.cat([batch_y[:, :args.label_len, :], dec_inp], dim=1).float().to(
+            accelerator.device)
+
         # Predict
         if args.output_attention:
-            outputs = model(batch_x, batch_x_mark)[0]
+            outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
         else:
-            outputs = model(batch_x, batch_x_mark)
+            outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
 
         # Process the predictions
         f_dim = -1 if args.features == 'MS' else 0
