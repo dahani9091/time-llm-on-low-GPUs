@@ -264,6 +264,9 @@ with torch.no_grad():
     # Concatenate the predictions
     predictions = np.concatenate(predictions, axis=0)
 
+    # Concatenate the actual data
+    actuals = np.concatenate(actuals, axis=0)
+
     # Plot the predictions
     plot_predictions(predictions, actuals)
 
