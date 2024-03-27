@@ -160,23 +160,28 @@ model.load_state_dict(torch.load(saved_model_path), strict=False)
 model.eval()
 
 # Define a function to plot the predictions
-def plot_predictions(predictions, sample_index=0):
+def plot_predictions(predictions, real, sample_index=0):
     import matplotlib.pyplot as plt
 
     # predictions is 3D, let's select one sample's predictions to plot
     # This will take the predictions for the first feature (index 0) of the given sample
     sample_predictions = predictions[sample_index, :, 0]
+    sample_real = real[sample_index, :, 0]
     
     # Create a figure and axis
     fig, ax = plt.subplots()
 
     # Plot the predictions
-    ax.plot(sample_predictions)
+    ax.plot(sample_predictions, label='Predictions')
+    ax.plot(sample_real, label='Real Data')
 
     # Add labels and title
     ax.set_xlabel('Time Steps')
-    ax.set_ylabel('Prediction')
-    ax.set_title('Predicted Values for Sample {}'.format(sample_index))
+    ax.set_ylabel('Value')
+    ax.set_title('Predicted Values vs Real Data for Sample {}'.format(sample_index))
+
+    # Add legend
+    ax.legend()
 
     # save the plot
     plt.savefig('predictions.png')
@@ -257,7 +262,7 @@ with torch.no_grad():
     predictions = np.concatenate(predictions, axis=0)
 
     # Plot the predictions
-    plot_predictions(predictions)
+    plot_predictions(predictions, test_data)
 
 accelerator.wait_for_everyone()
 if accelerator.is_local_main_process:
