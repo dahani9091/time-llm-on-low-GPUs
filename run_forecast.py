@@ -264,6 +264,9 @@ with torch.no_grad():
     # Plot the predictions
     plot_predictions(predictions, test_data)
 
+    # save all the predictions to a file
+    np.save('predictions.npy', predictions)
+
 accelerator.wait_for_everyone()
 if accelerator.is_local_main_process:
     path = './checkpoints'  # unique checkpoint saving path
