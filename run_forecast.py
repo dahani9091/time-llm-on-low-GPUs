@@ -178,8 +178,8 @@ def plot_predictions(predictions, sample_index=0):
     ax.set_ylabel('Prediction')
     ax.set_title('Predicted Values for Sample {}'.format(sample_index))
 
-    # Show the plot
-    plt.show()
+    # save the plot
+    plt.savefig('predictions.png')
 
 # Load the test data
 setting = '{}_{}_{}_{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_el{}_dl{}_df{}_fc{}_eb{}_{}_{}'.format(
